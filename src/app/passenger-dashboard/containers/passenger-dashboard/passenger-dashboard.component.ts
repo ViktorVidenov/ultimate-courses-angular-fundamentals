@@ -1,5 +1,7 @@
 import { Component, OnInit } from '@angular/core';
+import { catchError, throwError } from 'rxjs';
 import { Passenger } from '../../models/passenger.interface';
+import { PassengerDashboardService } from '../../services/passenger-dashboard.service';
 
 @Component({
     selector: 'passenger-dashboard',
@@ -9,7 +11,7 @@ import { Passenger } from '../../models/passenger.interface';
       <passenger-detail
         *ngFor="let passenger of passengers"
         [detail]="passenger"
-        (edit)="handleEdit($event)"
+        (edit)="handleEdit($event)" 
         (remove)="handleRemove($event)"
       ></passenger-detail>
     </div>
@@ -18,62 +20,44 @@ import { Passenger } from '../../models/passenger.interface';
 export class PassengerDashboardComponent implements OnInit {
     public passengers: Passenger[] = [];
 
+    constructor(private passengerService: PassengerDashboardService) { }
+
     ngOnInit(): void {
-        this.passengers = [
-            {
-                id: 1,
-                fullname: 'Stephen',
-                checkedIn: true,
-                checkInDate: 1490742000000,
-                children: null,
-            },
-            {
-                id: 2,
-                fullname: 'Ross',
-                checkedIn: false,
-                checkInDate: null,
-                children: [
-                    { name: 'Ted', age: 12 },
-                    { name: 'Chloe', age: 7 },
-                ],
-            },
-            {
-                id: 3,
-                fullname: 'James',
-                checkedIn: true,
-                checkInDate: 1491606000000,
-                children: null,
-            },
-            {
-                id: 4,
-                fullname: 'Louise',
-                checkedIn: true,
-                checkInDate: 1488412800000,
-                children: [
-                    { name: 'Jessica', age: 15 },
-                    { name: 'Ivan', age: 17 },
-                ],
-            },
-            {
-                id: 5,
-                fullname: 'Tina',
-                checkedIn: false,
-                checkInDate: null,
-                children: null,
-            },
-        ];
+        this.passengerService.getPassengers()
+            .pipe(
+                catchError(err => {
+                    return throwError(() => window.alert(err.message));
+                })
+            )
+            .subscribe(passengers => this.passengers = passengers);
     }
 
-    public handleRemove(event: Passenger): Passenger[] {
-        return this.passengers = this.passengers.filter((passenger: Passenger) => passenger.id !== event.id)
+    public handleRemove(event: Passenger): void {
+        this.passengerService.deletePassenger(event)
+            .pipe(
+                catchError(err => {
+                    return throwError(() => window.alert(err.message));
+                })
+            )
+            .subscribe((data: Passenger) => {
+                return this.passengers = this.passengers.filter((passenger: Passenger) => passenger.id !== event.id)
+            })
     }
 
     public handleEdit(event: Passenger): void {
-        this.passengers = this.passengers.map((passenger: Passenger) => {
-            if (passenger.id === event.id) {
-                passenger = Object.assign({}, passenger, event);
-            }
-            return passenger;
-        });
+        this.passengerService.updatePassenger(event)
+            .pipe(
+                catchError(err => {
+                    return throwError(() => window.alert(err.message));
+                })
+            )
+            .subscribe((data: Passenger) => {
+                this.passengers = this.passengers.map((passenger: Passenger) => {
+                    if (passenger.id === event.id) {
+                        passenger = Object.assign({}, passenger, event);
+                    }
+                    return passenger;
+                });
+            })
     }
 }
